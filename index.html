@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 10px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .url-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 10px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        button:active {
+            background: #0056b3;
+        }
+        
+        .size-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .custom-size {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .custom-size input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .info {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .preview-container {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        
+        .iframe-wrapper {
+            background: white;
+            border: 1px solid #ddd;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        
+        iframe {
+            border: none;
+            display: block;
+            background: white;
+        }
+        
+        .scroll-toggle {
+            background: #28a745;
+            margin-top: 10px;
+        }
+        
+        .scroll-toggle.locked {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div class="url-bar">
+            <input type="text" id="urlInput" placeholder="Enter URL (e.g., https://example.com)">
+            <button onclick="loadUrl()">Load</button>
+        </div>
+        
+        <div class="size-buttons">
+            <button onclick="setSize(375, 667)">iPhone SE<br>375×667</button>
+            <button onclick="setSize(414, 896)">iPhone 11<br>414×896</button>
+            <button onclick="setSize(768, 1024)">iPad<br>768×1024</button>
+            <button onclick="setSize(1024, 768)">iPad H<br>1024×768</button>
+            <button onclick="setSize(1920, 1080)">Desktop<br>1920×1080</button>
+            <button onclick="setSize(360, 640)">Android<br>360×640</button>
+        </div>
+        
+        <div class="custom-size">
+            <input type="number" id="customWidth" placeholder="Width" min="200">
+            <input type="number" id="customHeight" placeholder="Height" min="200">
+            <button onclick="setCustomSize()">Apply</button>
+        </div>
+        
+        <button class="scroll-toggle" id="scrollToggle" onclick="toggleScroll()">🔓 Scroll Enabled</button>
+        
+        <div class="info" id="sizeInfo">No preview loaded</div>
+    </div>
+    
+    <div class="preview-container" id="previewContainer">
+        <div class="iframe-wrapper" id="iframeWrapper">
+            <iframe id="preview" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+        </div>
+    </div>
+    
+    <script>
+        let currentWidth = 375;
+        let currentHeight = 667;
+        let scrollEnabled = true;
+        
+        function loadUrl() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            let fullUrl = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                fullUrl = 'https://' + url;
+            }
+            
+            document.getElementById('preview').src = fullUrl;
+            updateSize();
+        }
+        
+        function setSize(width, height) {
+            currentWidth = width;
+            currentHeight = height;
+            updateSize();
+        }
+        
+        function setCustomSize() {
+            const width = parseInt(document.getElementById('customWidth').value);
+            const height = parseInt(document.getElementById('customHeight').value);
+            
+            if (!width || !height || width < 200 || height < 200) {
+                alert('Please enter valid dimensions (minimum 200px)');
+                return;
+            }
+            
+            currentWidth = width;
+            currentHeight = height;
+            updateSize();
+        }
+        
+        function updateSize() {
+            const iframe = document.getElementById('preview');
+            const wrapper = document.getElementById('iframeWrapper');
+            const container = document.getElementById('previewContainer');
+            
+            iframe.style.width = currentWidth + 'px';
+            iframe.style.height = currentHeight + 'px';
+            wrapper.style.width = currentWidth + 'px';
+            wrapper.style.height = currentHeight + 'px';
+            
+            // Calculate scale to fit within screen width
+            const containerWidth = container.clientWidth - 20; // minus padding
+            const scale = Math.min(1, containerWidth / currentWidth);
+            
+            if (scale < 1) {
+                wrapper.style.transform = `scale(${scale})`;
+                wrapper.style.transformOrigin = 'top center';
+                wrapper.style.marginBottom = (currentHeight * scale - currentHeight) + 'px';
+            } else {
+                wrapper.style.transform = 'none';
+                wrapper.style.marginBottom = '0';
+            }
+            
+            document.getElementById('sizeInfo').textContent = 
+                `${currentWidth}×${currentHeight}px` + (scale < 1 ? ` (scaled to ${Math.round(scale * 100)}%)` : '');
+        }
+        
+        function toggleScroll() {
+            scrollEnabled = !scrollEnabled;
+            const toggle = document.getElementById('scrollToggle');
+            const container = document.getElementById('previewContainer');
+            
+            if (scrollEnabled) {
+                container.style.overflow = 'auto';
+                toggle.textContent = '🔓 Scroll Enabled';
+                toggle.classList.remove('locked');
+            } else {
+                container.style.overflow = 'hidden';
+                toggle.textContent = '🔒 Scroll Locked';
+                toggle.classList.add('locked');
+            }
+        }
+        
+        // Initial setup
+        setSize(375, 667);
+        
+        // Handle window resize
+        window.addEventListener('resize', updateSize);
+    </script>
+</body>
+</html>
